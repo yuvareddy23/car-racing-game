@@ -1,0 +1,148 @@
+import pygame 
+random pygame.init()
+
+# Screen Setup
+screen_width = 1080
+screen_height = 720
+screen = pygame.display.set_mode((screen_width, screen_height))
+pygame.display.set_caption("Fish Catch")
+
+# Background Image
+screenbg = pygame.image.load("background_img.jpeg")
+# Game values
+play_lives = 4
+player_vel = 5
+fishmove_vel = 5
+fish_speed = 0.5
+buffer_dis = 300
+
+score = 0
+play_startlives = play_lives
+fish_vel = fishmove_vel
+
+# Colors
+blue = (0, 0, 200)
+white = (255, 255, 255)
+black = (0, 0, 0)
+green = (0, 255, 0)
+deepgreen = (0, 200, 100)
+
+# Font
+font = pygame.font.SysFont("Arial", 32)  # Removed ".ttf" as SysFont doesn't need it
+
+# Text Setup
+score_txt = font.render("Score: " + str(score), True, green, deepgreen)
+score_rect = score_txt.get_rect()
+score_rect.topleft = (10, 10)
+
+title_txt = font.render("Catch Fish", True, green, white)
+title_rect = title_txt.get_rect()
+title_rect.centerx = screen_width // 2
+title_rect.y = 10
+
+live_txt = font.render("Lives: " + str(play_lives), True, blue, white)
+live_rect = live_txt.get_rect()
+live_rect.topright = (screen_width - 10, 10)
+
+gameover_txt = font.render("Game Over", True, green, deepgreen)
+gameover_rect = gameover_txt.get_rect()
+gameover_rect.center = (screen_width // 2, screen_height // 2)
+
+continue_txt = font.render("Press Any Key to Play Again", True, green, deepgreen)
+continue_rect = continue_txt.get_rect()
+continue_rect.center = (screen_width // 2, screen_height // 2 + 50)
+
+# Sounds
+fish_audio = pygame.mixer.Sound("fish_audio.wav")
+miss_sound = pygame.mixer.Sound("miss_audio.wav")
+pygame.mixer.music.load("background_music.wav")
+
+# Player
+player_image = pygame.image.load("fish_img.png")
+player_rect = player_image.get_rect()
+player_rect.left = 32
+player_rect.centery = screen_height // 2  # Changed from screen_width to screen_height
+
+# Fish
+fish_img = pygame.image.load("fish_img.png")  # Use actual fish enemy image
+fish_rect = fish_img.get_rect()
+fish_rect.x = screen_width + buffer_dis
+fish_rect.y = random.randint(64, screen_height - 32)
+
+pygame.mixer.music.play(-1, 0.0)
+
+# Game loop
+FPS = 60
+clock = pygame.time.Clock()
+running = True
+
+while running:
+    screen.blit(screenbg, (0, 0))  # Fill with background image
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+
+    # Player Movement
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_UP] and player_rect.top > 64:
+        player_rect.y -= player_vel
+    if keys[pygame.K_DOWN] and player_rect.bottom < screen_height:
+        player_rect.y += player_vel
+
+    # Move Fish
+    if fish_rect.x < 0:
+        play_lives -= 1
+        miss_sound.play()
+        fish_rect.x = screen_width + buffer_dis
+        fish_rect.y = random.randint(64, screen_height - 32)
+    else:
+        fish_rect.x -= fish_vel
+
+    # Collision Detection
+    if player_rect.colliderect(fish_rect):  # Corrected method
+        score += 1
+        fish_audio.play()
+        fish_vel += fish_speed
+        fish_rect.x = screen_width + buffer_dis
+        fish_rect.y = random.randint(64, screen_height - 32)
+
+    # Update Text
+    score_txt = font.render("Score: " + str(score), True, green, deepgreen)
+    live_txt = font.render("Lives: " + str(play_lives), True, blue, white)
+
+    # Game Over
+    if play_lives == 0:
+        screen.blit(gameover_txt, gameover_rect)
+        screen.blit(continue_txt, continue_rect)
+        pygame.display.update()
+
+        pygame.mixer.music.stop()
+        is_paused = True
+
+        while is_paused:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    score = 0
+                    play_lives = play_startlives
+                    player_rect.y = screen_height // 2
+                    fish_vel = fishmove_vel
+                    pygame.mixer.music.play(-1, 0.0)
+                    is_paused = False
+                elif event.type == pygame.QUIT:
+                    is_paused = False
+                    running = False
+        continue
+
+    # Draw UI and Sprites
+    screen.blit(score_txt, score_rect)
+    screen.blit(title_txt, title_rect)
+    screen.blit(live_txt, live_rect)
+    pygame.draw.line(screen, white, (0, 64), (screen_width, 64), 2)
+    screen.blit(player_image, player_rect)
+    screen.blit(fish_img, fish_rect)
+
+    pygame.display.update()
+    clock.tick(FPS)
+
+pygame.quit()
